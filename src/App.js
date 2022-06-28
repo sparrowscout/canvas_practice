@@ -6,26 +6,23 @@ import Stomp from "stompjs"
 
 
 const defaultStyle = { border: '1px solid gray', display: 'inline-block', margin: '1rem' }
-
 function Main(arg) {
-  const $websocket = React.useRef(null);
+  const socket = new WebSocket("ws://localhost:5000");
+// socket.binaryType = "arraybuffer"
 
-  const handleMsg = msg => {
-    console.log(msg);
-  }
+const [location, setLocation] = useState([]);
 
-  const handleClickSendTo = () => {
-    $websocket.current.sendMessage ('/sendTo');
-  }
+  socket.addEventListener("open", () => {
+    console.log("Connected to Server ✅")
+    socket.send("무덤까지 ... 비밀입니다")
+    socket.send(JSON.stringify(current))
 
-  const handleClickSendTemplate = () => {
-    $websocket.current.sendMessage('/Template')
-  }
+  })
 
-  //sockJS
-  // const sock = new SockJS('http://localhost:8080')
-  //sock 서버 위로 stomp 사용하기
-  // let client = Stomp.over(sock)
+  socket.addEventListener("message", (message) =>{
+    console.log(message)
+  })
+
 
   const [mouse, setMouse] = useState(false)
   //마우스다운일 때 true 업일 때 false로
@@ -38,8 +35,12 @@ function Main(arg) {
   const canvasRef = useRef(null);
   const canvasDrawRef = React.useRef(null)
 
-  const array = []
-
+  const current = {
+    x: 0,
+    y: 0,
+    color: color
+  }
+  const array = [];
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
@@ -58,20 +59,39 @@ function Main(arg) {
 
   }, [color, stroke])
 
-  const canvasEventListener = (x, y) => {
-    console.log(x,y)
+
+  const canvasEventListener = (x,y) => {
+
+
+    
+    // const x = event.clientX - event.target.offsetLeft;
+    // const y = event.clientY - event.target.offsetTop
+    
+    // current.x = event.clientX - event.target.offsetLeft
+    // current.y = event.clientY - event.target.offsetTop
+
+    // const startX = current.x
+    // const startY = current.y
+    // const endX = current.x
+    // const endY = current.y
+    
  
+    // console.log(startX, startY, endX, endY)
     if (!mouse) {
       return false
     }
     if (array.length === 0) {
       array.push({ x, y })
-      console.log(array)
-
-    } else {
+    } 
+    else {
+      socket.addEventListener("open", () => {
+        console.log("Connected to Server ✅")
+        socket.send("무덤까지 ... 비밀입니다")
+        socket.send(JSON.stringify(array))
+      })
 
       ctx.save()
-      drawCanvas.save() 
+      drawCanvas.save()
 
       ctx.beginPath();
       drawCanvas.beginPath();
@@ -92,22 +112,20 @@ function Main(arg) {
       drawCanvas.restore()
 
       array.push({ x, y })
-      console.log(array)
 
-     
-      // const location = {x: x, y: y}
+      // current.x = event.clientX - event.target.offsetLeft
+      // current.y = event.clientY - event.target.offsetTop
 
-      //데이터 전송(공식문서에 진짜 이렇게 써있음 ..)
-      // sock.onopen = function(event){
-      //   sock.send(JSON.stringify(location))
-      // }
-      
-      //서버로부터 데이터 수신하기 (공식문서에 진짜 이렇게 써있음 ..)
-      // sock.onmessage = function(event){
-      //   console.log(event.data)
-      // }
+
     }
   }
+  let drawing = false;
+
+  //   const onMouseDown = (e: MouseEvent) => {
+  //     drawing = true;
+  //     current.x = e.pageX - (ctx?.offsetLeft ?? 0)
+  //     current.y = e.pageY - (ctx?.offsetTop ?? 0)
+  // };
 
 
   const remove = () => {
@@ -128,13 +146,14 @@ function Main(arg) {
     link.click();
   }
 
-
   return (
     <div className='container' >
       <canvas ref={canvasRef} style={defaultStyle}
         onMouseDown={() => { setMouse(true) }}
-        onMouseMove={(event) => { canvasEventListener(event.clientX - event.target.offsetLeft,
-                                                       event.clientY - event.target.offsetTop) }}
+        onMouseMove={(event) => {canvasEventListener(event.clientX - event.target.offsetLeft, 
+                                                     event.clientY - event.target.offsetTop)}}
+
+        // onMouseMove={(event) => {canvasEventListener(event)}}
         // onMouseLeave={(event) => { canvasEventListener(event, 'leave') }}
         onMouseUp={() => { setMouse(false) }}
       >
@@ -161,16 +180,12 @@ function Main(arg) {
 
       <canvas ref={canvasDrawRef} style={defaultStyle}></canvas>
 
-      <SockJsClient
-      url="http://localhost:8080/start"
-      topics={['/topics/sendTo','/topics/template','/topics/api']}
-      onMessage={msg => {
-        console.log(msg)
-      }}
-      ref={$websocket}
-      />
-      <button onClick={handleClickSendTo}>SendTo</button>
-      <button onClick={handleClickSendTemplate}>SendTemplate</button>
+          <button onClick={() => {
+            socket.send(JSON.stringify(array))
+          }}>서버에보내기</button>
+
+      {/* <button onClick={handleClickSendTo}>SendTo</button>
+      <button onClick={handleClickSendTemplate}>SendTemplate</button> */}
 
     </div>
   );
